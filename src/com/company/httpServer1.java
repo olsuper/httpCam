@@ -3,19 +3,29 @@ package com.company;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.BasicAuthenticator;
+import com.sun.net.httpserver.HttpContext;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.*;
+
 
 public class httpServer1 {
 
     public static void main(String[] args) throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
         server.createContext("/info", new InfoHandler());
-        server.createContext("/get", new GetHandler());
+        HttpContext hc1 = server.createContext("/get", new GetHandler());
+//        hc1.setAuthenticator(new BasicAuthenticator("get") {
+//           @Override
+//            public boolean checkCredentials(String user, String pwd) {
+//                return user.equals("admin") && pwd.equals("password");
+//            }
+//        });
         server.setExecutor(null); // creates a default executor
         server.start();
         System.out.println("The server is running");
@@ -33,9 +43,41 @@ public class httpServer1 {
         public void handle(HttpExchange httpExchange) throws IOException {
             StringBuilder response = new StringBuilder();
             Map<String,String> parms = httpServer1.queryToMap(httpExchange.getRequestURI().getQuery());
+
+            if(!parms.get("run").isEmpty())
+            {
+                if(parms.get("run").toString().equals("rs")) {
+                    try {
+                        Runtime rt = Runtime.getRuntime();
+                        //Process pr = rt.exec("cmd /c dir");
+
+                        //Process pr = rt.exec("cd /home/oleg/Downloads/chdkptp-r795");
+                        Process pr = rt.exec("/home/oleg/Downloads/chdkptp-r795/chdkptp.sh -e=connect -e=rec -e=play -e=rec -e=shoot");
+
+                        BufferedReader input = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+
+                        String line = null;
+
+                        while ((line = input.readLine()) != null) {
+                            System.out.println(line);
+                        }
+
+                        int exitVal = pr.waitFor();
+                        System.out.println("Exited with error code " + exitVal);
+
+
+                    } catch (Exception e) {
+                        System.out.println(e.toString());
+                        e.printStackTrace();
+                    }
+                }
+
+            }
+            else
+            {};
+
             response.append("<html><body>");
-            response.append("hello : " + parms.get("hello") + "<br/>");
-            response.append("foo : " + parms.get("foo") + "<br/>");
+            response.append("run : " + parms.get("run") + "<br/>");
             response.append("</body></html>");
             httpServer1.writeResponse(httpExchange, response.toString());
         }
